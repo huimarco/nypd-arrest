@@ -6,7 +6,7 @@ output: html_document
 ---
 ## Set up
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo=FALSE,message=FALSE,fig.width=20,fig.height=10)
+knitr::opts_chunk$set(echo=FALSE,message=FALSE)
 ```
 
 ```{r libraries}
@@ -16,7 +16,7 @@ library(lubridate)
 
 ```{r Plot Theme}
 # create plot theme
-gg_theme <- theme(plot.title = element_text(face='bold',size=22,vjust=1),
+gg_theme <- theme(#plot.title = element_text(face='bold',size=22,vjust=1),
                   axis.title.x = element_blank(),
                   axis.title.y = element_blank(),
                   panel.grid.major.x = element_blank(),
@@ -55,10 +55,74 @@ dim(arrests)
 # get summary statistics
 summary(arrests)
 ```
+Fewer arrests towards the end of the year. This might be because less people are out in public during the cold winter months.
+```{r}
+# plot arrests count per month
+arrests %>% 
+  group_by(month=factor(month(ARREST_DATE))) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=month,y=count)) + 
+  geom_bar(stat='identity',fill='blue4') +
+  labs(title='Number of Arrests By Month') +
+  gg_theme
+```
+
+Fewer arrests in Staten Island and Queens. This might be because of their smaller population.
+```{r}
+# plot arrests count per borough
+arrests %>% 
+  group_by(ARREST_BORO) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=reorder(ARREST_BORO,-count),y=count)) + 
+  geom_bar(stat='identity',fill='blue4') +
+  labs(title='Number of Arrests By Borough') +
+  gg_theme
+```
+```{r}
+head(arrests)
+```
+
+More arrests involving perpetrators who are 25-44 years old, males, and black.
+```{r}
+# plot arrests count per age group
+arrests %>% 
+  group_by(AGE_GROUP) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=reorder(AGE_GROUP,count),y=count)) + 
+  geom_bar(stat='identity',fill='blue4') +
+  labs(title='Number of Arrests By Perpetrator Age Group') +
+  coord_flip() +
+  gg_theme
+
+# plot arrests count per sex
+arrests %>% 
+  group_by(PERP_SEX) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=reorder(PERP_SEX,count),y=count)) + 
+  geom_bar(stat='identity',fill='blue4') +
+  labs(title='Number of Arrests By Perpetrator Sex') +
+  coord_flip() +
+  gg_theme
+
+# plot arrests count per race
+arrests %>% 
+  group_by(PERP_RACE) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=reorder(PERP_RACE,count),y=count)) + 
+  geom_bar(stat='identity',fill='blue4') +
+  labs(title='Number of Arrests By Perpetrator Race') +
+  coord_flip() +
+  gg_theme
+```
 
 ## Has the arrest rate been decreasing from 2018-2022?
-
 ```{r}
+# plot arrests count per year (difficult for comparisons because 2022 data is incomplete)
 arrests %>% 
   group_by(year=year(ARREST_DATE)) %>% 
   summarise(count=n()) %>%
@@ -69,7 +133,8 @@ ggplot(aes(x=year,y=count)) +
   gg_theme
 ```
 
-```{r}
+```{r,fig.width=20,fig.height=10}
+# plot arrests count per month and year
 arrests %>% 
   group_by(yearmonth=substr(ARREST_DATE,0,7)) %>% 
   summarise(count=n()) %>%
