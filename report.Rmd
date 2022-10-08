@@ -1,0 +1,54 @@
+---
+title: "NYPD Arrest Analysis"
+author: "Marco Hui"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+
+# load libraries
+library(tidyverse)
+library(lubridate)
+
+# create plot theme
+gg_theme <- theme(plot.title = element_text(face='bold',size=22,vjust=1),
+                  axis.title.x = element_blank(),
+                  axis.title.y = element_blank(),
+                  panel.grid.major.x = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  panel.background = element_rect(fill='grey95'),
+                  panel.border = element_blank())
+
+# load data from downloaded csv files on local desktop
+# note: decided against accessing data via API because that is limited to 500000 rows per call  
+arrests <- read_csv('/Users/marcohui/Desktop/NYPD_Arrests_Data__Historic_.csv')
+arrests2022 <- read_csv('/Users/marcohui/Desktop/NYPD_Arrest_Data__Year_to_Date_.csv') %>%
+  rename(Lon_Lat=`New Georeferenced Column`)
+
+# combine data
+arrests <- bind_rows(arrests,arrests2022)
+
+# filter arrests between 2018 and 2021
+arrests <- arrests %>% 
+  mutate(ARREST_DATE = mdy(ARREST_DATE)) %>% 
+  filter(year(ARREST_DATE)>2017)
+```
+
+### Q1: Has the arrest rate been decreasing from 2018-2022?
+Describe the trend and defend any statistical tests used to support this conclusion.
+
+The response looks like this.
+
+### Q2: What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
+Compare & describe the overall trends of these arrests across time.
+The response looks like this.
+
+### If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
+Describe the trend, variability and justify any statistical tests used to support this conclusion.
+The response looks like this.
+
+### Given the available data, what model would you build to predict crime to better allocate NYPD resources? 
+What challenges do you foresee? Describe how you chose your independent and dependent variables. How would you evaluate the model?
+The response looks like this.

@@ -4,14 +4,25 @@ author: "Marco Hui"
 date: "`r Sys.Date()`"
 output: html_document
 ---
-
+## Set up
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,fig.width=20,fig.height=10)
 ```
 
 ```{r libraries}
 library(tidyverse)
 library(lubridate)
+```
+
+```{r Plot Theme}
+# create plot theme
+gg_theme <- theme(plot.title = element_text(face='bold',size=22,vjust=1),
+                  axis.title.x = element_blank(),
+                  axis.title.y = element_blank(),
+                  panel.grid.major.x = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  panel.background = element_rect(fill='grey95'),
+                  panel.border = element_blank())
 ```
 
 ```{r data}
@@ -30,15 +41,45 @@ arrests <- arrests %>%
   filter(year(ARREST_DATE)>2017)
 ```
 
-```{r summary}
+## Exploratory data analysis
+```{r}
+head(arrests)
+```
+
+```{r}
+# find number of rows and columns
+dim(arrests)
+```
+
+```{r}
+# get summary statistics
 summary(arrests)
 ```
+
 ## Has the arrest rate been decreasing from 2018-2022?
-```{r arrests by year}
+
+```{r}
 arrests %>% 
   group_by(year=year(ARREST_DATE)) %>% 
   summarise(count=n()) %>%
-  mutate()
+  
+ggplot(aes(x=year,y=count)) + 
+  geom_line(colour='blue4') +
+  labs(title='Number of Arrests By Year') +
+  gg_theme
+```
+
+```{r}
+arrests %>% 
+  group_by(yearmonth=substr(ARREST_DATE,0,7)) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=yearmonth,y=count,group=1)) + 
+  geom_line(colour='blue4') + 
+  geom_smooth(method=loess,se=F,colour='red3',size=0.5,formula=y~x) +
+  labs(title='Number of Arrests By Year and Month') +
+  gg_theme +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
 ```
 
 ## What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
@@ -54,11 +95,13 @@ arrests %>%
 ```{r}
 arrests %>% head(100)
 ```
-
+### If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
 ```{r}
 arrests %>% 
   group_by(precinct=ARREST_PRECINCT) %>% 
   summarise(count=n()) %>%
   filter(precinct==19|precinct==73)
 ```
+
+### Given the available data, what model would you build to predict crime to better allocate NYPD resources?
 
