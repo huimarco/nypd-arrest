@@ -1,0 +1,64 @@
+---
+title: "main"
+author: "Marco Hui"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+library(lubridate)
+```
+
+```{r data}
+# load data from downloaded csv files on local desktop
+# note: decided against accessing data via API because that is limited to 500000 rows per call  
+arrests <- read_csv('/Users/marcohui/Desktop/NYPD_Arrests_Data__Historic_.csv')
+arrests2022 <- read_csv('/Users/marcohui/Desktop/NYPD_Arrest_Data__Year_to_Date_.csv') %>%
+  rename(Lon_Lat=`New Georeferenced Column`)
+
+# combine data
+arrests <- bind_rows(arrests,arrests2022)
+
+# filter arrests between 2018 and 2021
+arrests <- arrests %>% 
+  mutate(ARREST_DATE = mdy(ARREST_DATE)) %>% 
+  filter(year(ARREST_DATE)>2017)
+```
+
+```{r summary}
+summary(arrests)
+```
+## Has the arrest rate been decreasing from 2018-2022?
+```{r arrests by year}
+arrests %>% 
+  group_by(year=year(ARREST_DATE)) %>% 
+  summarise(count=n()) %>%
+  mutate()
+```
+
+## What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
+
+```{r}
+arrests %>% 
+  group_by(OFNS_DESC) %>% 
+  summarise(count=n()) %>%
+  mutate(pcnt=round(count/sum(count),3)) %>%
+  arrange(desc(pcnt))
+```
+
+```{r}
+arrests %>% head(100)
+```
+
+```{r}
+arrests %>% 
+  group_by(precinct=ARREST_PRECINCT) %>% 
+  summarise(count=n()) %>%
+  filter(precinct==19|precinct==73)
+```
+
