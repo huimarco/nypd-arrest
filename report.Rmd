@@ -39,7 +39,7 @@ arrests <- arrests %>%
 ### Q1: Has the arrest rate been decreasing from 2018-2022?
 Describe the trend and defend any statistical tests used to support this conclusion.
 
-The response looks like this.
+A breakdown of months and year provides a better picture with more nuances. We see that the number of arrests in NYC begins trending down in 2018 before dipping significantly in 2020 most likely due to COVID19 guidelines that limited human interactions. It has risen back up since restrictions eased, but still lower than pre-pandemic numbers. 
 
 ### Q2: What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
 Compare & describe the overall trends of these arrests across time.
@@ -49,6 +49,14 @@ The response looks like this.
 Describe the trend, variability and justify any statistical tests used to support this conclusion.
 The response looks like this.
 
+There is more crime in precinct 73 (Brownsville) than in precinct 19 (Upper East Side).
+
 ### Given the available data, what model would you build to predict crime to better allocate NYPD resources? 
 What challenges do you foresee? Describe how you chose your independent and dependent variables. How would you evaluate the model?
-The response looks like this.
+
+Because we don't have data on non-arrest incidents, we can predict the type of crime reported in OFNS_DESC. This means a multiclass classification model.
+
+I would build a random forest model. Independent variable would be different features of an arrest incident (PERP_RACE, PERP_SEX, ARREST_BORO. etc.), which can be one-hot encoded into dummy variables. Dependent variable would be the type of offense reported in OFNS_DESC.
+
+### Notes
+Data used in this report is last updated 10/08/2022.

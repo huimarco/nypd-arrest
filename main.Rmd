@@ -25,9 +25,9 @@ gg_theme <- theme(#plot.title = element_text(face='bold',size=22,vjust=1),
                   panel.border = element_blank())
 ```
 
+I decided against accessing data via an API endpoint because that is limited to 500000 rows per call
 ```{r data}
 # load data from downloaded csv files on local desktop
-# note: decided against accessing data via API because that is limited to 500000 rows per call  
 arrests <- read_csv('/Users/marcohui/Desktop/NYPD_Arrests_Data__Historic_.csv')
 arrests2022 <- read_csv('/Users/marcohui/Desktop/NYPD_Arrest_Data__Year_to_Date_.csv') %>%
   rename(Lon_Lat=`New Georeferenced Column`)
@@ -121,8 +121,9 @@ ggplot(aes(x=reorder(PERP_RACE,count),y=count)) +
 ```
 
 ## Has the arrest rate been decreasing from 2018-2022?
+Arrests count demonstrates a downwards trend from 2018 to 2022. However, it is difficult to use the 2022 number for comparison because data is incomplete (records stop at July 2022).  
 ```{r}
-# plot arrests count per year (difficult for comparisons because 2022 data is incomplete)
+# plot arrests count per year
 arrests %>% 
   group_by(year=year(ARREST_DATE)) %>% 
   summarise(count=n()) %>%
@@ -132,6 +133,8 @@ ggplot(aes(x=year,y=count)) +
   labs(title='Number of Arrests By Year') +
   gg_theme
 ```
+
+A breakdown of months and year provides a better picture with more nuances. We see that the number of arrests in NYC begins trending down in 2018 before dipping significantly in 2020 most likely due to COVID19 guidelines that limited human interactions. It has risen back up since restrictions eased, but still lower than pre-pandemic numbers. 
 
 ```{r,fig.width=20,fig.height=10}
 # plot arrests count per month and year
@@ -143,6 +146,22 @@ ggplot(aes(x=yearmonth,y=count,group=1)) +
   geom_line(colour='blue4') + 
   geom_smooth(method=loess,se=F,colour='red3',size=0.5,formula=y~x) +
   labs(title='Number of Arrests By Year and Month') +
+  gg_theme +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
+```
+
+Focusing on data prior to the COVID19 pandemic in March 2020, the downward trend of arrests is more evident.
+```{r}
+# plot arrests count per month and year filtered
+arrests %>% 
+  filter(ARREST_DATE<'2020-03-01') %>%
+  group_by(yearmonth=substr(ARREST_DATE,0,7)) %>% 
+  summarise(count=n()) %>%
+
+ggplot(aes(x=yearmonth,y=count,group=1)) + 
+  geom_line(colour='blue4') + 
+  geom_smooth(method=loess,se=F,colour='red3',size=0.5,formula=y~x) +
+  labs(title='Number of Arrests By Year and Month Pre-Pandemic') +
   gg_theme +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
 ```
@@ -161,12 +180,15 @@ arrests %>%
 arrests %>% head(100)
 ```
 ### If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
+
 ```{r}
 arrests %>% 
   group_by(precinct=ARREST_PRECINCT) %>% 
   summarise(count=n()) %>%
-  filter(precinct==19|precinct==73)
+  filter(precinct==19|precinct==73) %>%
+  arrange(-count)
 ```
+
 
 ### Given the available data, what model would you build to predict crime to better allocate NYPD resources?
 
