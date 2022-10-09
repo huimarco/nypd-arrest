@@ -37,26 +37,50 @@ arrests <- arrests %>%
 ```
 
 ### Q1: Has the arrest rate been decreasing from 2018-2022?
-Describe the trend and defend any statistical tests used to support this conclusion.
 
-A breakdown of months and year provides a better picture with more nuances. We see that the number of arrests in NYC begins trending down in 2018 before dipping significantly in 2020 most likely due to COVID19 guidelines that limited human interactions. It has risen back up since restrictions eased, but still lower than pre-pandemic numbers. 
+Arrests in New York City have shown a general decrease over previous years, from 20564 average monthly incidents in 2018 to 15539 average monthly incidents in 2022. This is evident from the green linear regression line in the month by month breakdown below.\footnote{Without data on the population of New York City, it is difficult to calculate arrest rate data. Assuming that the population did not change drastically between 2019 and 2022, looking at arrest counts should be a reasonable proxy for arrest rate.}
+
+Diving deeper, number of  arrests starts off at 23882 cases in January 2018, dips to just 7461 cases in July 2020, then rises back up to 16407 cases in Jun 2022. This nuance is captured by the orange loess curve. The significant drop in 2020 is most likely due to COVID-19 guidelines that discouraged people from being in public and limited human interactions across the city. When restrictions eased, the number of arrests rose back to a level more normal, which is still lower than where it began in 2018.
+ 
+```{r,fig.width=20,fig.height=10}
+# plot arrests count per month and year
+arrests %>% 
+  group_by(yearmonth=substr(ARREST_DATE,0,7)) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=yearmonth,y=count,group=1)) + 
+  geom_line(colour='blue4') + 
+  geom_smooth(method=loess,se=F,colour='green',size=0.5,formula=y~x) +
+  geom_smooth(method=lm,se=F,colour='orange',size=0.5,formula=y~x) +
+  labs(title='Number of Arrests (Jan 2018 - Jun 2022)') +
+  gg_theme +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
+```
+
 
 ### Q2: What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
 Compare & describe the overall trends of these arrests across time.
 The response looks like this.
 
-### If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
+
+
+### Q3: If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
 Describe the trend, variability and justify any statistical tests used to support this conclusion.
-The response looks like this.
 
 There is more crime in precinct 73 (Brownsville) than in precinct 19 (Upper East Side).
 
-### Given the available data, what model would you build to predict crime to better allocate NYPD resources? 
-What challenges do you foresee? Describe how you chose your independent and dependent variables. How would you evaluate the model?
+### Q4: Given the available data, what model would you build to predict crime to better allocate NYPD resources? 
+Given the available data, I would build a random forest model.
 
-Because we don't have data on non-arrest incidents, we can predict the type of crime reported in OFNS_DESC. This means a multiclass classification model.
+The dependent variable would be the type of offense reported in OFNS_DESC. This was chosen because it has clear, distinct values and is meaningful; being able to anticipate the kind of crime allows the NYPD to better prepare themselves to handle the arrest. This also explains the choice of the multiclass classification random forest model. \footnote{Predicting whether or not a crime leads to an arrest would be interesting too and very relevant to studying prejudice in arrests. However, the lack of data on misdemeanors without leading arrest prevents us from constructing the necessary dependent variable.}
 
-I would build a random forest model. Independent variable would be different features of an arrest incident (PERP_RACE, PERP_SEX, ARREST_BORO. etc.), which can be one-hot encoded into dummy variables. Dependent variable would be the type of offense reported in OFNS_DESC.
+The independent variables would be various features of an incident such as AGE_GROUP, PERP_SEX, ARREST_BORO, etc. Some may have to be one-hot encoded into dummy variables.
+
+The model would be generally be evaluated on its ability to correctly predict the type of offense in OFNS_DESC in a test set (a random subset from the total data) given just the inputted features. Some simple statistics I would look at to judge effectiveness would be the accuracy, precision, and recall scores.
+
+A challenge that I forsee would be the large number of possible output classifications. Although OFNS_DESC has fewer unique values than PD_DESC, there is still a decent amount. To make a more generalisable model, I would probably have to look through the possible types and consolidate some. 
+
+However, a good random forest model can give some insights on what attributes are more common for certain type of crimes, giving officers a better idea of what to look for.
 
 ### Notes
 Data used in this report is last updated 10/08/2022.

@@ -16,8 +16,7 @@ library(lubridate)
 
 ```{r Plot Theme}
 # create plot theme
-gg_theme <- theme(#plot.title = element_text(face='bold',size=22,vjust=1),
-                  axis.title.x = element_blank(),
+gg_theme <- theme(axis.title.x = element_blank(),
                   axis.title.y = element_blank(),
                   panel.grid.major.x = element_blank(),
                   panel.grid.minor = element_blank(),
@@ -40,6 +39,7 @@ arrests <- arrests %>%
   mutate(ARREST_DATE = mdy(ARREST_DATE)) %>% 
   filter(year(ARREST_DATE)>2017)
 ```
+
 
 ## Exploratory data analysis
 ```{r}
@@ -120,6 +120,7 @@ ggplot(aes(x=reorder(PERP_RACE,count),y=count)) +
   gg_theme
 ```
 
+
 ## Has the arrest rate been decreasing from 2018-2022?
 Arrests count demonstrates a downwards trend from 2018 to 2022. However, it is difficult to use the 2022 number for comparison because data is incomplete (records stop at July 2022).  
 ```{r}
@@ -134,8 +135,18 @@ ggplot(aes(x=year,y=count)) +
   gg_theme
 ```
 
-A breakdown of months and year provides a better picture with more nuances. We see that the number of arrests in NYC begins trending down in 2018 before dipping significantly in 2020 most likely due to COVID19 guidelines that limited human interactions. It has risen back up since restrictions eased, but still lower than pre-pandemic numbers. 
+Average monthly arrests per year.
+```{r}
+# average monthly arrests per year
+arrests %>% 
+  group_by(year=year(ARREST_DATE),month=month(ARREST_DATE)) %>%
+  summarise(count=n()) %>%
+  ungroup() %>% 
+  group_by(year) %>% 
+  summarise(avg=sum(count)/max(month))
+```
 
+A breakdown of months and year provides a better picture with more nuances and addresses previous limitation of incomplete data.
 ```{r,fig.width=20,fig.height=10}
 # plot arrests count per month and year
 arrests %>% 
@@ -144,7 +155,7 @@ arrests %>%
   
 ggplot(aes(x=yearmonth,y=count,group=1)) + 
   geom_line(colour='blue4') + 
-  geom_smooth(method=loess,se=F,colour='red3',size=0.5,formula=y~x) +
+  geom_smooth(method=loess,se=F,colour='orange',size=0.5,formula=y~x) +
   labs(title='Number of Arrests By Year and Month') +
   gg_theme +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
@@ -160,17 +171,23 @@ arrests %>%
 
 ggplot(aes(x=yearmonth,y=count,group=1)) + 
   geom_line(colour='blue4') + 
-  geom_smooth(method=loess,se=F,colour='red3',size=0.5,formula=y~x) +
+  geom_smooth(method=loess,se=F,colour='orange',size=0.5,formula=y~x) +
   labs(title='Number of Arrests By Year and Month Pre-Pandemic') +
   gg_theme +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
 ```
 
 ## What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
-
+Many  
 ```{r}
 arrests %>% 
   group_by(OFNS_DESC) %>% 
+  summarise(count=n()) %>%
+  mutate(pcnt=round(count/sum(count),3)) %>%
+  arrange(desc(pcnt))
+
+arrests %>% 
+  group_by(PD_DESC) %>% 
   summarise(count=n()) %>%
   mutate(pcnt=round(count/sum(count),3)) %>%
   arrange(desc(pcnt))
@@ -181,14 +198,29 @@ arrests %>% head(100)
 ```
 ### If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
 
+In total, there are more crime by count in Brownsville than in Upper East Side
 ```{r}
 arrests %>% 
-  group_by(precinct=ARREST_PRECINCT) %>% 
+  group_by(ARREST_PRECINCT) %>% 
   summarise(count=n()) %>%
-  filter(precinct==19|precinct==73) %>%
+  mutate(pcnt=round(count/sum(count),4)) %>%
+  filter(ARREST_PRECINCT==19|ARREST_PRECINCT==73) %>%
   arrange(-count)
 ```
 
+```{r,fig.width=20,fig.height=10}
+arrests %>% 
+  filter(ARREST_PRECINCT==19|ARREST_PRECINCT==73) %>%
+  group_by(yearmonth=substr(ARREST_DATE,0,7),precinct=factor(ARREST_PRECINCT)) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=yearmonth,y=count,colour=precinct,group=precinct)) + 
+  geom_line() + 
+  geom_smooth(method=loess,se=F,colour='orange',size=0.5,formula=y~x) +
+  labs(title='Number of Arrests') +
+  gg_theme +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
+```
 
 ### Given the available data, what model would you build to predict crime to better allocate NYPD resources?
 
