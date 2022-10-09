@@ -6,15 +6,14 @@ output: pdf_document
 ---
 
 ```{r setup,include=FALSE}
-knitr::opts_chunk$set(echo=FALSE)
+knitr::opts_chunk$set(echo=FALSE,message=FALSE)
 
 # load libraries
 library(tidyverse)
 library(lubridate)
 
 # create plot theme
-gg_theme <- theme(plot.title = element_text(face='bold',size=22,vjust=1),
-                  axis.title.x = element_blank(),
+gg_theme <- theme(axis.title.x = element_blank(),
                   axis.title.y = element_blank(),
                   panel.grid.major.x = element_blank(),
                   panel.grid.minor = element_blank(),
@@ -52,7 +51,7 @@ ggplot(aes(x=yearmonth,y=count,group=1)) +
   geom_line(colour='blue4') + 
   geom_smooth(method=loess,se=F,colour='green',size=0.5,formula=y~x) +
   geom_smooth(method=lm,se=F,colour='orange',size=0.5,formula=y~x) +
-  labs(title='Number of Arrests (Jan 2018 - Jun 2022)') +
+  labs(title='Monthly Arrest Count (Jan 2018 - Jun 2022)') +
   gg_theme +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
 ```
@@ -65,11 +64,45 @@ The response looks like this.
 
 
 ### Q3: If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
-Describe the trend, variability and justify any statistical tests used to support this conclusion.
 
-There is more crime in precinct 73 (Brownsville) than in precinct 19 (Upper East Side).
+At first glance, there seems to be more crime in precinct 73 (Brownsville) than in precinct 19 (Upper East Side). Between January 2018 and June 2022, Brownsville has seen 17058 arrests cases while Upper East Side has seen just 8871 cases.
+
+This difference in amplified considering Brownsville is noticeably smaller than Upper East Side in area. At 3.01 km^2, Brownsville has 5667 arrests per 1 km^2 over the past 30 months. At 4.60 km^2, Upper East Side has 1928 arrests per 1 km^2 over the past 30 months.\footnote{ Resident population and general foot traffic would also be important to look at when judging crime between two areas. Something to consider for future analysis with more data.} 
+
+The number of arrests in Brownsville is not only higher overall, but also much more variable in comparison.
+
+```{r,fig.width=15,fig.height=10}
+arrests %>% 
+  filter(ARREST_PRECINCT==19|ARREST_PRECINCT==73) %>%
+  group_by(yearmonth=substr(ARREST_DATE,0,7),precinct=factor(ARREST_PRECINCT)) %>% 
+  summarise(count=n()) %>%
+  
+  
+ggplot(aes(x=count,colour=precinct,fill=precinct,group=precinct)) + 
+  geom_histogram(bins=20,position='identity',alpha=0.5) +
+  scale_y_continuous(limits=c(0,13),expand=c(0, 0)) +
+  labs(title='Distribution of Monthly Arrest Count (Jan 2018 - Jun 2022)') +
+  gg_theme
+```
+
+This makes sense when looking at the trends over time. As expected, crime in Upper East Side starts off and is generally lower. However, the occurrences of arrests in Brownsville have decreased significantly over the past 30 months.
+
+```{r,fig.width=20,fig.height=10}
+arrests %>% 
+  filter(ARREST_PRECINCT==19|ARREST_PRECINCT==73) %>%
+  group_by(yearmonth=substr(ARREST_DATE,0,7),precinct=factor(ARREST_PRECINCT)) %>% 
+  summarise(count=n()) %>%
+  
+ggplot(aes(x=yearmonth,y=count,colour=precinct,group=precinct)) + 
+  geom_line() + 
+  geom_smooth(method=lm,se=F,colour='orange',size=0.5,formula=y~x) +
+  labs(title='Monthly Arrest Count By Precinct (Jan 2018 - Jun 2022)') +
+  gg_theme +
+  theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
+```
 
 ### Q4: Given the available data, what model would you build to predict crime to better allocate NYPD resources? 
+
 Given the available data, I would build a random forest model.
 
 The dependent variable would be the type of offense reported in OFNS_DESC. This was chosen because it has clear, distinct values and is meaningful; being able to anticipate the kind of crime allows the NYPD to better prepare themselves to handle the arrest. This also explains the choice of the multiclass classification random forest model. \footnote{Predicting whether or not a crime leads to an arrest would be interesting too and very relevant to studying prejudice in arrests. However, the lack of data on misdemeanors without leading arrest prevents us from constructing the necessary dependent variable.}
@@ -78,7 +111,7 @@ The independent variables would be various features of an incident such as AGE_G
 
 The model would be generally be evaluated on its ability to correctly predict the type of offense in OFNS_DESC in a test set (a random subset from the total data) given just the inputted features. Some simple statistics I would look at to judge effectiveness would be the accuracy, precision, and recall scores.
 
-A challenge that I forsee would be the large number of possible output classifications. Although OFNS_DESC has fewer unique values than PD_DESC, there is still a decent amount. To make a more generalisable model, I would probably have to look through the possible types and consolidate some. 
+A challenge that I forsee is the large number of possible output classifications. Although OFNS_DESC has fewer unique values than PD_DESC, there is still a decent amount. To make a more generalisable model, I would probably have to look through the possible types and consolidate some. 
 
 However, a good random forest model can give some insights on what attributes are more common for certain type of crimes, giving officers a better idea of what to look for.
 
