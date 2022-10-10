@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo=FALSE,message=FALSE)
 ```{r libraries}
 library(tidyverse)
 library(lubridate)
+library(tidytext)
 ```
 
 ```{r Plot Theme}
@@ -42,17 +43,20 @@ arrests <- arrests %>%
 
 
 ## Exploratory data analysis
+
+A glimpse of the data.
 ```{r}
 head(arrests)
 ```
 
+Shape of the data
 ```{r}
 # find number of rows and columns
 dim(arrests)
 ```
 
+Some summary statistics of the columns.
 ```{r}
-# get summary statistics
 summary(arrests)
 ```
 Fewer arrests towards the end of the year. This might be because less people are out in public during the cold winter months.
@@ -79,9 +83,6 @@ ggplot(aes(x=reorder(ARREST_BORO,-count),y=count)) +
   geom_bar(stat='identity',fill='blue4') +
   labs(title='Number of Arrests By Borough') +
   gg_theme
-```
-```{r}
-head(arrests)
 ```
 
 More arrests involving perpetrators who are 25-44 years old, males, and black.
@@ -133,7 +134,6 @@ arrests %>%
   
 ggplot(aes(x=year,y=count)) + 
   geom_line(colour='blue4') +
-  labs(title='Number of Arrests By Year') +
   gg_theme
 ```
 
@@ -148,7 +148,7 @@ arrests %>%
   summarise(avg=sum(count)/max(month))
 ```
 
-A breakdown of months and year provides a better picture with more nuances and addresses previous limitation of incomplete data.
+A breakdown of months and year provides a better picture with more nuances and addresses previous limitation of incomplete data. We see a general downwards trend, dipping during COVID-19 and rising back up slightly in recent months.
 ```{r,fig.width=20,fig.height=10}
 # plot arrests count per month and year
 arrests %>% 
@@ -158,12 +158,11 @@ arrests %>%
 ggplot(aes(x=yearmonth,y=count,group=1)) + 
   geom_line(colour='blue4') + 
   geom_smooth(method=loess,se=F,colour='orange',size=0.5,formula=y~x) +
-  labs(title='Number of Arrests By Year and Month') +
   gg_theme +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
 ```
 
-Focusing on data prior to the COVID19 pandemic in March 2020, the downward trend of arrests is more evident.
+Focusing on just data prior to the COVID19 pandemic in March 2020, the downward trend of arrests is more evident.
 ```{r}
 # plot arrests count per month and year filtered
 arrests %>% 
@@ -174,15 +173,13 @@ arrests %>%
 ggplot(aes(x=yearmonth,y=count,group=1)) + 
   geom_line(colour='blue4') + 
   geom_smooth(method=loess,se=F,colour='orange',size=0.5,formula=y~x) +
-  labs(title='Number of Arrests By Year and Month Pre-Pandemic') +
   gg_theme +
   theme(axis.text.x=element_text(angle=90,vjust=0.5,hjust=1))
 ```
 
-
-
 ## What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
-Many  
+
+Comparing the count of distinct values for OFNS_DESC and PD_DESC. The latter has significantly more.
 ```{r}
 arrests %>% 
   group_by(OFNS_DESC) %>% 
@@ -197,11 +194,57 @@ arrests %>%
   arrange(desc(pcnt))
 ```
 
-```{r}
-arrests %>% head(100)
+Top 5 most frequent arrests from 2018 to 2022.
+```{r,fig.width=20,fig.height=10}
+arrests %>% 
+  group_by(PD_DESC) %>% 
+  summarise(count=n()) %>%
+  mutate(pcnt=round(count/sum(count),3)) %>%
+  arrange(desc(pcnt)) %>%
+  slice(1:10) %>%
+
+ggplot(aes(x=reorder(PD_DESC,count),y=count)) +
+  geom_bar(stat='identity',fill='blue4') + 
+  coord_flip() +
+  geom_text(aes(label=pcnt),colour='white',size=4.5,hjust=1.3) +
+  gg_theme
 ```
 
+Top 5 most frequent arrests trends over time.
+```{r}
+arrests %>% 
+  filter(PD_DESC=='ASSAULT 3'|
+           PD_DESC=='LARCENY,PETIT FROM OPEN AREAS,'|
+           PD_DESC=='ASSAULT 2,1,UNCLASSIFIED'|
+           PD_DESC=='TRAFFIC,UNCLASSIFIED MISDEMEAN'|
+           PD_DESC=='ROBBERY,OPEN AREA UNCLASSIFIED') %>%
+  group_by(year=year(ARREST_DATE),Offense=PD_DESC) %>%
+  summarise(count=n()) %>%
 
+ggplot(aes(x=year,y=count,colour=Offense,group=Offense)) +
+  geom_line() +
+  gg_theme
+```
+
+Top 5 most frequent arrests by year. Some changes but not too different year over year. Interesting to see traffic arrests disappearing.
+```{r,fig.width=20,fig.height=15}
+arrests %>% 
+  group_by(year=year(ARREST_DATE),PD_DESC) %>% 
+  summarise(count=n()) %>%
+  ungroup() %>%
+  group_by(year) %>%
+  mutate(pcnt=round(count/sum(count),3)) %>%
+  arrange(desc(pcnt)) %>%
+  slice(1:5) %>%
+  
+ggplot(aes(x=reorder_within(PD_DESC,count,year),y=count)) +
+  geom_col(stat='identity',fill='blue4') + 
+  coord_flip() +
+  scale_x_reordered() +
+  geom_text(aes(label=pcnt),colour='white',size=2,hjust=1.3) +
+  gg_theme +
+  facet_wrap(~year,scale='free',ncol=2)
+```  
 
 ## If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
 

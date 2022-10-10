@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo=FALSE,message=FALSE)
 # load libraries
 library(tidyverse)
 library(lubridate)
+library(tidytext)
 
 # create plot theme
 gg_theme <- theme(axis.title.x = element_blank(),
@@ -58,10 +59,61 @@ ggplot(aes(x=yearmonth,y=count,group=1)) +
 
 
 ### Q2: What are the top 5 most frequent arrests as described in the column 'pd_desc' in 2018-2022?
-Compare & describe the overall trends of these arrests across time.
-The response looks like this.
 
+The top 5 most frequent arrests as described in the column 'pd_desc' between January 2018 and June 2022 are: assault (3), larceny (petit from open areas), assault (1, 2, unclassified), traffic (unclassified misdemean), and robbery (open area unclassified). The percentage of total for each type of arrest is labelled (the numbers are not very high because of how granular the data is).
 
+```{r,fig.width=20,fig.height=10}
+arrests %>% 
+  group_by(PD_DESC) %>% 
+  summarise(count=n()) %>%
+  mutate(pcnt=round(count/sum(count),3)) %>%
+  arrange(desc(pcnt)) %>%
+  slice(1:5) %>%
+
+ggplot(aes(x=reorder(PD_DESC,count),y=count)) +
+  geom_bar(stat='identity',fill='blue4') + 
+  coord_flip() +
+  geom_text(aes(label=pcnt),colour='white',size=4.5,hjust=1.3) +
+  gg_theme
+```
+
+Following the overall decline of arrests in the past 30 months, these 5 offenses all trend downwards. Traffic arrests in particular has over time become the least frequent among the 5.
+
+```{r}
+arrests %>% 
+  filter(PD_DESC=='ASSAULT 3'|
+           PD_DESC=='LARCENY,PETIT FROM OPEN AREAS,'|
+           PD_DESC=='ASSAULT 2,1,UNCLASSIFIED'|
+           PD_DESC=='TRAFFIC,UNCLASSIFIED MISDEMEAN'|
+           PD_DESC=='ROBBERY,OPEN AREA UNCLASSIFIED') %>%
+  group_by(year=year(ARREST_DATE),Offense=PD_DESC) %>%
+  summarise(count=n()) %>%
+
+ggplot(aes(x=year,y=count,colour=Offense,group=Offense)) +
+  geom_line() +
+  gg_theme
+```
+
+Regardless, the top 5 most frequent arrests remains fairly consistent from 2018 to 2022. 
+
+```{r,fig.width=20,fig.height=15}
+arrests %>% 
+  group_by(year=year(ARREST_DATE),PD_DESC) %>% 
+  summarise(count=n()) %>%
+  ungroup() %>%
+  group_by(year) %>%
+  mutate(pcnt=round(count/sum(count),3)) %>%
+  arrange(desc(pcnt)) %>%
+  slice(1:5) %>%
+  
+ggplot(aes(x=reorder_within(PD_DESC,count,year),y=count)) +
+  geom_bar(stat='identity',fill='blue4') + 
+  coord_flip() +
+  scale_x_reordered() +
+  geom_text(aes(label=pcnt),colour='white',size=2,hjust=1.3) +
+  gg_theme +
+  facet_wrap(~year,scale='free',ncol=2)
+```  
 
 ### Q3: If we think of arrests as a sample of total crime, is there more crime in precinct 19 (Upper East Side) than precinct 73 (Brownsville)? 
 
@@ -85,7 +137,7 @@ ggplot(aes(x=count,colour=precinct,fill=precinct,group=precinct)) +
   gg_theme
 ```
 
-This makes sense when looking at the trends over time. As expected, crime in Upper East Side starts off and is generally lower. However, the occurrences of arrests in Brownsville have decreased significantly over the past 30 months.
+This makes sense when looking at the trends over time. As expected, crime in Upper East Side starts off and is generally lower. However, the occurrences of arrests in Brownsville have decreased more significantly over the past 30 months.
 
 ```{r,fig.width=20,fig.height=10}
 arrests %>% 
